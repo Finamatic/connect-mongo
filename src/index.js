@@ -151,7 +151,7 @@ module.exports = function connectMongo(connect) {
             this.collection = collection;
 
             // Promisify used collection methods
-            ['count', 'findOne', 'remove', 'drop', 'ensureIndex'].forEach(method => {
+            ['count', 'find', 'findOne', 'remove', 'drop', 'ensureIndex'].forEach(method => {
                 collection[method + 'Async'] = Promise.promisify(collection[method], { context: collection });
             });
             collection.updateAsync = Promise.promisify(collection.update, { context: collection, multiArgs: true });
@@ -307,6 +307,12 @@ module.exports = function connectMongo(connect) {
         length(callback) {
             return this.collectionReady()
                 .then(collection => collection.countAsync({}))
+                .asCallback(callback);
+        }
+
+        all(callback) {
+            return this.collectionReady()
+                .then(collection => collection.findAsync({}))
                 .asCallback(callback);
         }
 
