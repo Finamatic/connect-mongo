@@ -313,7 +313,7 @@ module.exports = function connectMongo(connect) {
         all(callback) {
             return this.collectionReady()
                 .then(collection => collection.findAsync({}))
-                .then(cursor => cursor.toArray())
+                .then(cursor => cursor.toArray().map(session => this.transformFunctions.unserialize(session.session)))
                 .asCallback(callback);
         }
 
