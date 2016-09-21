@@ -119,20 +119,20 @@ module.exports = function connectMongo(connect) {
             return this
                 .setCollection(db.collection(this.collectionName))
                 .setAutoRemoveAsync()
-                    .then(() => this.changeState('connected'));
+                .then(() => this.changeState('connected'));
         }
 
         setAutoRemoveAsync() {
             let removeQuery = { expires: { $lt: new Date() } };
             switch (this.autoRemove) {
-            case 'native':
-                return this.collection.ensureIndexAsync({ expires: 1 }, { expireAfterSeconds: 0 });
-            case 'interval':
-                this.timer = setInterval(() => this.collection.remove(removeQuery, { w: 0 }), this.autoRemoveInterval * 1000 * 60);
-                this.timer.unref();
-                return Promise.resolve();
-            default:
-                return Promise.resolve();
+                case 'native':
+                    return this.collection.ensureIndexAsync({ expires: 1 }, { expireAfterSeconds: 0 });
+                case 'interval':
+                    this.timer = setInterval(() => this.collection.remove(removeQuery, { w: 0 }), this.autoRemoveInterval * 1000 * 60);
+                    this.timer.unref();
+                    return Promise.resolve();
+                default:
+                    return Promise.resolve();
             }
         }
 
@@ -164,15 +164,15 @@ module.exports = function connectMongo(connect) {
             if (!promise) {
                 promise = new Promise((resolve, reject) => {
                     switch (this.state) {
-                    case 'connected':
-                        resolve(this.collection);
-                        break;
-                    case 'connecting':
-                        this.once('connected', () => resolve(this.collection));
-                        break;
-                    case 'disconnected':
-                        reject(new Error('Not connected'));
-                        break;
+                        case 'connected':
+                            resolve(this.collection);
+                            break;
+                        case 'connecting':
+                            this.once('connected', () => resolve(this.collection));
+                            break;
+                        case 'disconnected':
+                            reject(new Error('Not connected'));
+                            break;
                     }
                 });
                 this.collectionReadyPromise = promise;
@@ -312,7 +312,12 @@ module.exports = function connectMongo(connect) {
 
         all(callback) {
             return this.collectionReady()
-                .then(collection => collection.findAsync({}))
+                .then(collection => collection.findAsync({
+                    $or: [
+                        { expires: { $exists: false } },
+                        { expires: { $gt: new Date() } },
+                    ]
+                }))
                 .then(cursor => Promise.fromCallback(callback => cursor.toArray(callback)))
                 .then(sessions => sessions.map(session => this.transformFunctions.unserialize(session.session)))
                 .asCallback(callback);
